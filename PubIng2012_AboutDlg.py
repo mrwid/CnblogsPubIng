@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #coding:utf-8
 #-------------------------------------------------------------------------------
-# Name:        CnblogsFan_AboutDlg.py
+# Name:        PubIng2012_AboutDlg.py
 # Purpose:
 #
 # Author:      wid
@@ -26,7 +26,7 @@ CnblogsFan_License = u'''采用GNU General Public License version 3开源协议.
     http://www.gnu.org/licenses/gpl-3.0.html
 
 PubIng2012项目下载:
-    https://github.com/mrwid/CnblogsFan
+    https://github.com/mrwid/CnblogsPubIng
 '''
 
 CnblogsFan_Others = '''
