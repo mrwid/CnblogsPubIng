@@ -16,6 +16,7 @@ import random
 import urllib
 import urllib2
 import win32api
+import win32gui
 import cookielib
 import threading
 import PubIng2012_AboutDlg
@@ -23,6 +24,9 @@ import PubIng2012_LoginCnblogsDlg
 
 def en(x):
     return x.encode('utf-8')
+
+def cn(x):
+    return x.decode('utf-8')
 
 class ThreadWork( threading.Thread ):
     def __init__( self, parent,  username, password, intervalTime ):
@@ -43,10 +47,9 @@ class ThreadWork( threading.Thread ):
     def Work( self ):
         status = self.LogoinCnblogs( self.username, self.password )
         if status != 1:
-            self.WriteLog( status )
             wx.CallAfter( self.parent.ShowErrors, status )
             return
-        self.WriteLog( u'执行刷星命令' )
+        self.WriteLog( '执行刷星命令' )
 
         try:
             with open( 'src/PubIng2012_IngContent.txt', 'r' ) as f:
@@ -60,22 +63,23 @@ class ThreadWork( threading.Thread ):
             PubInfo.append(str( time.strftime("%Y-%m-%d %X", time.localtime()) ))
             pubContent = random.choice(txt)
             pubContent = pubContent.rstrip()
+            pubContent = unicode(pubContent, "UTF-8")   #
             PubInfo.append( pubContent )
             status = self.PubishIng( pubContent )
             if status != 1:
-                self.WriteLog( u'该闪存发布失败: %s'%pubContent )
+                self.WriteLog( '该闪存发布失败: %s'%en(pubContent) )
                 PubInfo.append( u'发布失败' )
             else:
-                self.WriteLog( u'成功发布闪存: %s'%pubContent )
+                self.WriteLog( '成功发布闪存: %s'%en(pubContent) )
                 PubInfo.append( u'发布成功' )
             status = self.CheckIsStarIng(en(pubContent))
             if status == 1:
                 PubInfo.append( u'这是幸运闪' )
-                self.WriteLog( u'这是幸运闪' )
+                self.WriteLog( '这是幸运闪' )
             else:
                 PubInfo.append( u'否' )
             wx.CallAfter( self.parent.ReDrawListCtrl, PubInfo )
-            self.WriteLog(u'----------')
+            self.WriteLog('----------\r\n')
             for i in range( self.intervalTime, 0, -1 ):
                 wx.CallAfter( self.parent.ReDrawWaitingTime, i )
                 time.sleep(1)
@@ -108,40 +112,38 @@ class ThreadWork( threading.Thread ):
             return 0
 
     def LogoinCnblogs( self, name, pwd ):
-        try:
-            params_post = urllib.urlencode({
-                '__EVENTTARGET': '',
-                '__EVENTARGUMENT': '',
-                '__VIEWSTATE': r'/wEPDwULLTE1MzYzODg2NzZkGAEFHl9fQ29udHJvbHNSZXF1aXJlUG9zdEJhY2tLZXlfXxYBBQtjaGtSZW1lbWJlcm1QYDyKKI9af4b67Mzq2xFaL9Bt',
-                '__EVENTVALIDATION': r'/wEWBQLWwpqPDQLyj/OQAgK3jsrkBALR55GJDgKC3IeGDE1m7t2mGlasoP1Hd9hLaFoI2G05',
-                'tbUserName' : name,
-                'tbPassword' : pwd,
-                'btnLogin'   :  '登录'
-            })
+        params_post = urllib.urlencode({
+            '__EVENTTARGET': '',
+            '__EVENTARGUMENT': '',
+            '__VIEWSTATE': '/wEPDwULLTE1MzYzODg2NzZkGAEFHl9fQ29udHJvbHNSZXF1aXJlUG9zdEJhY2tLZXlfXxYBBQtjaGtSZW1lbWJlcm1QYDyKKI9af4b67Mzq2xFaL9Bt',
+            '__EVENTVALIDATION': '/wEWBQLWwpqPDQLyj/OQAgK3jsrkBALR55GJDgKC3IeGDE1m7t2mGlasoP1Hd9hLaFoI2G05',
+            'tbUserName' : name,
+            'tbPassword' : pwd,
+            'btnLogin'   :  '登录'
+        })
 
-            cookie = cookielib.CookieJar()
-            opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookie))
-            urllib2.install_opener(opener)
-            login_response = urllib2.urlopen( 'http://passport.cnblogs.com/login.aspx?', params_post )
-            txt = login_response.read()     #读取返回数据
+        cookie = cookielib.CookieJar()
+        opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookie))
+        urllib2.install_opener(opener)
+        login_response = urllib2.urlopen( 'http://passport.cnblogs.com/login.aspx?', params_post )
+        txt = login_response.read()     #读取返回数据
 
-            if ( txt.find("用户名或密码错误") != -1 ):
-                return u'用户名或密码错误'
-            elif txt.find("该用户不存在") != -1:
-                return u'该用户不存在。'
-            elif txt.find("编辑个人资料") != -1:
-                return 1
-            else:
-                return u'未知错误, 无法登录!'
-        except:
-            return u'未知错误, 无法登录!'
+        if ( txt.find("用户名或密码错误") != -1 ):
+            return '用户名或密码错误'
+        elif txt.find("该用户不存在") != -1:
+            return '该用户不存在。'
+        elif txt.find("编辑个人资料") != -1:
+            return 1
+        else:
+            return '未知错误, 无法登录!'
+
 
     def PubishIng( self, pubContent ):
         try:
             post_url = 'http://home.cnblogs.com/ajax/ing/Publish'
             params_post = urllib.urlencode({
-                'content' : en(pubContent),
-                'publicFlag' : 1
+                'content' : en( pubContent ) ,
+                'publicFlag' : '1'
             })
             pubIng_response = urllib2.urlopen( post_url, params_post )
             responseInf = pubIng_response.read()
@@ -152,6 +154,46 @@ class ThreadWork( threading.Thread ):
                 return 0
         except:
             return -1
+
+
+class TaskBarIcon(wx.TaskBarIcon):
+    ID_Play = wx.NewId()
+    ID_About = wx.NewId()
+    ID_Closeshow = wx.NewId()
+
+    def __init__(self, frame):
+        wx.TaskBarIcon.__init__(self)
+        self.frame = frame
+        self.SetIcon(wx.Icon(name='src/AppLogo.ico', type=wx.BITMAP_TYPE_ICO), u'PubIng2012')
+        self.Bind(wx.EVT_TASKBAR_LEFT_DCLICK, self.OnTaskBarLeftDClick)
+        self.Bind(wx.EVT_MENU, self.OnShow, id=self.ID_Play)
+        self.Bind(wx.EVT_MENU, self.OnAbout, id=self.ID_About)
+        self.Bind(wx.EVT_MENU, self.OnExitApp, id=self.ID_Closeshow)
+
+    def OnTaskBarLeftDClick(self, event):
+        if self.frame.IsIconized():
+           self.frame.Iconize(False)
+        if not self.frame.IsShown():
+           self.frame.Show(True)
+        self.frame.Raise()
+
+    def OnShow(self, event):
+        win32gui.ShowWindow( self.frame.Handle, 1 )
+        win32gui.SetFocus(self.frame.Handle)
+
+    def OnAbout(self, event):
+        wx.CallAfter( self.frame.AboutPubIng2012, event )
+
+    def OnExitApp(self,event):
+        wx.CallAfter( self.frame.ExitApp )
+
+    # 右键菜单
+    def CreatePopupMenu(self):
+        menu = wx.Menu()
+        menu.Append(self.ID_Play, u'显示')
+        menu.Append(self.ID_About, u'关于')
+        menu.Append(self.ID_Closeshow, u'退出')
+        return menu
 
 class PubIng2012_MainFrame(wx.Frame):
     def __init__(self):
@@ -176,6 +218,8 @@ class PubIng2012_MainFrame(wx.Frame):
         self.SetIcon(self.AppLogo)
         #创建面板-----
         self.panel = wx.Panel(self)
+        #最小化到系统托盘
+        self.taskBarIcon = TaskBarIcon(self)
 
         #创建状态栏-----
         self.userStatus = self.CreateStatusBar()
@@ -339,6 +383,8 @@ class PubIng2012_MainFrame(wx.Frame):
         self.Bind( wx.EVT_BUTTON, self.StartPubIng, self.btnStartPubIng )       #开始刷星
         self.Bind( wx.EVT_BUTTON, self.ShowLogs, self.btnShowLog )              #查看日志文件
 
+        self.Bind(wx.EVT_ICONIZE, self.OnIconfiy)                               #最小化到系统托盘
+
     def StartPubIng( self, event ):
         if self.btnStartPubIng.GetLabel() == u'开始刷星':
             sliderValue = self.sliderPubInterval.GetValue()
@@ -354,6 +400,7 @@ class PubIng2012_MainFrame(wx.Frame):
 
 
     def ExitApp( self, event = None ):
+        self.taskBarIcon.Destroy()
         self.Destroy()
 
     def SetUserInfo( self, name, pwd ):
@@ -366,20 +413,12 @@ class PubIng2012_MainFrame(wx.Frame):
         Function: 编辑闪存发布内容
         NOTE: EdtIngText(self, event) -> None
         '''
-        try:
+        with open( 'src/PubIng2012_IngContent.txt', 'a+' ) as f:
             win32api.ShellExecute( self.Handle, "open", "src\PubIng2012_IngContent.txt", "", "", 1 )
-        except:
-            with open( 'src/PubIng2012_IngContent.txt', 'a' ) as f:
-                f.close()
-                win32api.ShellExecute( self.Handle, "open", "src\PubIng2012_IngContent.txt", "", "", 1 )
 
     def ShowLogs( self, event ):
-        try:
+        with open( 'src/PubIng2012.log', 'a+' ) as f:
             win32api.ShellExecute( self.Handle, "open", "src\PubIng2012.log", "", "", 1 )
-        except:
-            with open( 'src/PubIng2012_IngContent.txt', 'a' ) as f:
-                f.close()
-                win32api.ShellExecute( self.Handle, "open", "src\PubIng2012.log", "", "", 1 )
 
     #关于软件
     def AboutPubIng2012( self, event ):
@@ -387,7 +426,7 @@ class PubIng2012_MainFrame(wx.Frame):
         dlg.ShowModal()
 
     def ShowErrors( self, info ):
-        wx.MessageBox( info, '错误', wx.OK )
+        wx.MessageBox( info, u'错误', wx.OK )
 
     #登录对话框
     def OnTimerLogin( self, event ):
@@ -431,6 +470,14 @@ class PubIng2012_MainFrame(wx.Frame):
     def ReSetStarIngStatus( self ):
         self.StarIng += 1
         self.userStatus.SetStatusText(u' 得星统计: %d'%self.StarIng, 3)
+
+    #最小化到托盘事件
+    def OnHide(self, event):
+        self.Hide()
+    def OnIconfiy(self, event):
+        self.Hide()
+        event.Skip()
+
 
 def main():
     PubIng2012 = wx.PySimpleApp()
