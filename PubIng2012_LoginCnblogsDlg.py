@@ -16,6 +16,14 @@ import urllib
 import urllib2
 import cookielib
 
+
+def en(x):
+    return x.encode('utf-8')
+
+def cn(x):
+    return x.decode('utf-8')
+
+
 def LogoinCnblogs( name, pwd ):
     try:
         params_post = urllib.urlencode({
@@ -23,8 +31,8 @@ def LogoinCnblogs( name, pwd ):
             '__EVENTARGUMENT': '',
             '__VIEWSTATE': r'/wEPDwULLTE1MzYzODg2NzZkGAEFHl9fQ29udHJvbHNSZXF1aXJlUG9zdEJhY2tLZXlfXxYBBQtjaGtSZW1lbWJlcm1QYDyKKI9af4b67Mzq2xFaL9Bt',
             '__EVENTVALIDATION': r'/wEWBQLWwpqPDQLyj/OQAgK3jsrkBALR55GJDgKC3IeGDE1m7t2mGlasoP1Hd9hLaFoI2G05',
-            'tbUserName': name,
-            'tbPassword': pwd,
+            'tbUserName': en(name),
+            'tbPassword': en(pwd),
             'btnLogin'  : '登录'
         })
 
@@ -197,8 +205,8 @@ class LoginCnblogsDlg(wx.Dialog):
 
     #对字符串进行base64编码转化进行伪加密
     def base64ToPwd( self, strString ):
-        strString = 'qqa' + strString + 'wid'               #在待加密文本中插入字符
-        return base64.encodestring( strString )             #对自身进行base64编码
+        strString = 'qqa' + strString + 'wid'             #在待加密文本中插入字符
+        return base64.encodestring( en(strString) )             #对自身进行base64编码
 
     #记住密码
     def RemmberPwd( self, event ):
