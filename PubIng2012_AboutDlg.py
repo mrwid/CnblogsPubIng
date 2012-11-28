@@ -64,7 +64,7 @@ class AboutDlg(wx.Dialog):
         rect = self.groupBox.Rect
         self.lblVersion = wx.StaticText(
             self,
-            label = u'版本:    1.0.0',
+            label = u'版本:    1.1.0',
             pos = ( rect[0] + 20, rect[1] + 30 )
         )
         rect = self.lblVersion.Rect
